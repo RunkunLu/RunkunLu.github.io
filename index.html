@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+  天地图地图页面 · 部署说明
+  ============================================
+  1. 本页面使用天地图 Key（应用密钥 tk），已在天地图控制台
+     为该应用配置域名白名单：www.runkun.com
+  2. 因此本页面只有部署到 www.runkun.com 域名下才能正常加载地图；
+     本地直接双击打开（file:// 协议）会因不在白名单而加载失败，属正常现象。
+  3. 部署方法：把本文件上传到 www.runkun.com 的网站根目录（或子目录），
+     然后用浏览器访问对应 URL 即可（如 https://www.runkun.com/index.html）。
+  4. 若日后更换部署域名，需同步到天地图控制台"应用管理"里
+     修改该应用的"域名白名单"。
+  ============================================
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>天地图 - 真实地形</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #mapDiv { width: 100%; height: 100%; font-family: "Microsoft YaHei", sans-serif; }
+    /* 左上角图层切换控件 */
+    .layer-switch {
+      position: absolute; top: 20px; left: 20px; z-index: 10;
+      background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      padding: 8px; font-size: 13px; display: flex; gap: 4px;
+    }
+    .layer-switch button {
+      border: none; background: #f1f3f5; color: #333; cursor: pointer;
+      padding: 6px 12px; border-radius: 6px; transition: all .15s;
+    }
+    .layer-switch button.active { background: #3b82f6; color: #fff; }
+    /* 左下角版权说明 */
+    .credit {
+      position: absolute; bottom: 14px; left: 14px; z-index: 10;
+      font-size: 11px; color: #555; background: rgba(255,255,255,.8);
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .tip {
+      position: absolute; top: 20px; right: 20px; z-index: 10;
+      background: rgba(0,0,0,.55); color: #fff; font-size: 12px;
+      padding: 8px 12px; border-radius: 6px; line-height: 1.6; max-width: 260px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 天地图 JavaScript API 4.0 -->
+  <script src="https://api.tianditu.gov.cn/api?v=4.0&tk=b5790fb5ff3b747b7199a7a6cf297e28"></script>
+
+  <div id="mapDiv"></div>
+
+  <!-- 图层切换控件 -->
+  <div class="layer-switch" id="layerSwitch">
+    <button data-layer="img" class="active">影像</button>
+    <button data-layer="ter">地形</button>
+    <button data-layer="vec">矢量</button>
+  </div>
+
+  <div class="tip">
+    已加载天地图真实影像（卫星地形）<br>拖动地图 / 滚轮缩放，可切换左下角按钮查看不同底图
+  </div>
+
+  <div class="credit">数据来源：国家地理信息公共服务平台 · 天地图</div>
+
+  <script>
+    // ===== 天地图 Key =====
+    var TIANDITU_TK = 'b5790fb5ff3b747b7199a7a6cf297e28';
+
+    // ===== 初始化地图 =====
+    var map = new T.Map('mapDiv', { projection: 'EPSG:4326' });
+    // 初始中心：中国中部（可改成任意经纬度，如庐山 116.04,29.55）
+    map.centerAndZoom(new T.LngLat(104.5, 35.8), 4);
+    map.enableScrollWheelZoom();   // 滚轮缩放
+    map.enableContinuousZoom();    // 平滑缩放
+    map.addControl(new T.Control.Zoom()); // 缩放控件
+
+    // ===== 图层定义 =====
+    var layers = {
+      ter: null, // 地形
+      img: null, // 影像
+      vec: null  // 矢量
+    };
+
+    function ensureLayer(type) {
+      if (!layers[type]) {
+        layers[type] = new T.TileLayer(type);
+        map.addLayer(layers[type]);
+      }
+      return layers[type];
+    }
+
+    // 默认显示影像层（卫星真实地形）
+    ensureLayer('img');
+
+    // ===== 图层切换 =====
+    document.getElementById('layerSwitch').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var type = btn.getAttribute('data-layer');
+
+      // 切换按钮高亮
+      this.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+
+      // 隐藏当前层，显示目标层
+      Object.keys(layers).forEach(function (k) {
+        if (layers[k]) map.removeLayer(layers[k]);
+      });
+      ensureLayer(type);
+    });
+
+    // 加载完成后若存在失败层则打印提示
+    window.addEventListener('error', function (e) {
+      console.warn('资源加载异常：', e.message || e.target.src);
+    }, true);
+  </script>
+</body>
+</html>
